@@ -9,7 +9,15 @@ import path from 'path';
 import { ENV } from '../config/env.js';
 import { ensureDir, resolveFromRoot } from '../utils/file.utils.js';
 
-const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg'];
+const ALLOWED_MIME_TYPES = [
+  'application/pdf', 
+  'image/jpeg', 
+  'image/jpg',
+  'image/png',
+  'image/webp',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword'
+];
 const MAX_FILE_SIZE_BYTES = ENV.MAX_FILE_SIZE_MB * 1024 * 1024;
 
 // Multer disk storage — saves to UPLOAD_DIR
@@ -31,7 +39,7 @@ function fileFilter(req, file, cb) {
   if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Hanya file PDF dan JPG yang diizinkan.'), false);
+    cb(new Error('Hanya file PDF, Word, JPG, PNG, dan WEBP yang diizinkan.'), false);
   }
 }
 

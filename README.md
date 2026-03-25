@@ -47,9 +47,13 @@ npm start
 
 ## API Endpoints
 
-| Method | Endpoint     | Description        |
-|--------|--------------|--------------------|
-| GET    | /api/health  | Health check       |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/health` | Health check |
+| POST | `/api/pdf/to-word` | Convert PDF to Word (gateway) |
+| POST | `/api/pdf/word-to-pdf` | Convert Word to PDF (gateway) |
+| POST | `/api/pdf/add-watermark` | Add text watermark using native Node.js pdf-lib |
+| POST | `/api/image/remove-background` | Remove Image Background (gateway to Python Image Service) |
 
 ### Health Check Response
 

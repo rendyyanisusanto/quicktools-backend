@@ -10,7 +10,8 @@ import {
   splitPdf as splitService,
   compressPdf as compressService,
   jpgToPdf as jpgToPdfService,
-  pdfToJpg as pdfToJpgService
+  pdfToJpg as pdfToJpgService,
+  addWatermark as addWatermarkService
 } from '../services/pdf.service.js';
 import { removeFiles } from '../utils/file.utils.js';
 
@@ -221,6 +222,61 @@ export async function pdfToJpg(req, res, next) {
     return res.status(200).json({
       success: true,
       message: 'Berhasil melakukan konversi PDF ke JPG.',
+      data: result,
+    });
+  } catch (err) {
+    removeFiles(uploadedPaths);
+    next(err);
+  }
+}
+
+/**
+ * POST /api/pdf/add-watermark
+ * Accepts one PDF file and watermark config, returns download URL for watermarked PDF.
+ */
+export async function addWatermark(req, res, next) {
+  let uploadedPaths = [];
+
+  try {
+    await handleUpload(req, res);
+
+    const files = req.files;
+    if (!files || files.length !== 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Satu file PDF diperlukan.',
+      });
+    }
+
+    uploadedPaths = files.map((f) => f.path);
+    const filePath = uploadedPaths[0];
+
+    const { text, position, opacity, fontSize, rotation, colorHex } = req.body;
+
+    if (!text) {
+      removeFiles(uploadedPaths);
+      return res.status(400).json({
+        success: false,
+        message: 'Teks watermark diperlukan.',
+      });
+    }
+
+    const config = {
+      text,
+      position,
+      opacity: opacity ? parseFloat(opacity) : 0.5,
+      fontSize: fontSize ? parseInt(fontSize, 10) : 48,
+      rotation: rotation ? parseInt(rotation, 10) : 45,
+      colorHex: colorHex || '#000000',
+    };
+
+    const result = await addWatermarkService(filePath, config);
+
+    removeFiles(uploadedPaths);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Watermark berhasil ditambahkan ke PDF.',
       data: result,
     });
   } catch (err) {

@@ -5,7 +5,7 @@
  */
 
 import PDFMerger from 'pdf-merger-js';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, rgb, degrees, StandardFonts } from 'pdf-lib';
 import path from 'path';
 import fs from 'fs';
 import { exec } from 'child_process';
@@ -290,4 +290,143 @@ export async function pdfToJpg(filePath) {
   } catch (err) {
     throw new Error('Gagal mengonversi PDF ke JPG. Pastikan file PDF tidak dikunci/enkripsi.');
   }
+}
+
+/**
+ * Adds a text watermark to all pages of a PDF document.
+ * 
+ * @param {string} filePath - Absolute path of uploaded PDF file
+ * @param {Object} config - Watermark settings: { text, position, opacity, fontSize, rotation, colorHex }
+ */
+export async function addWatermark(filePath, config) {
+  const { text, position = 'center', opacity = 0.5, fontSize = 48, rotation = 45, colorHex = '#000000' } = config;
+
+  if (!text) {
+    throw new Error('Teks watermark tidak boleh kosong.');
+  }
+
+  const outputDir = resolveFromRoot(ENV.OUTPUT_DIR);
+  ensureDir(outputDir);
+
+  const { readFile, writeFile } = await import('fs/promises');
+
+  let pdfBytes;
+  try {
+    pdfBytes = await readFile(filePath);
+  } catch (err) {
+    throw new Error('Gagal membaca file PDF.');
+  }
+
+  let pdfDoc;
+  try {
+    pdfDoc = await PDFDocument.load(pdfBytes);
+  } catch (err) {
+    throw new Error('File PDF rusak atau tidak valid.');
+  }
+
+  const helveticaFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  // Convert hex color to rgb (0-1 scale)
+  const hexToRgb = (hex) => {
+    let raw = hex.replace('#', '');
+    if (raw.length === 3) raw = raw.split('').map((c) => c + c).join('');
+    const bigint = parseInt(raw, 16);
+    return {
+      r: ((bigint >> 16) & 255) / 255,
+      g: ((bigint >> 8) & 255) / 255,
+      b: (bigint & 255) / 255,
+    };
+  };
+
+  const parsedColor = hexToRgb(colorHex);
+  const textWidth = helveticaFont.widthOfTextAtSize(text, fontSize);
+  const textHeight = helveticaFont.heightAtSize(fontSize);
+  const pages = pdfDoc.getPages();
+
+  for (const page of pages) {
+    const { width, height } = page.getSize();
+    let x = 0;
+    let y = 0;
+
+    // A basic padding strategy for corners
+    const padding = 40;
+
+    switch (position) {
+      case 'center':
+        x = width / 2 - textWidth / 2;
+        y = height / 2 - textHeight / 2;
+        break;
+      case 'top-left':
+        x = padding;
+        y = height - padding - textHeight;
+        break;
+      case 'top-right':
+        x = width - padding - textWidth;
+        y = height - padding - textHeight;
+        break;
+      case 'bottom-left':
+        x = padding;
+        y = padding;
+        break;
+      case 'bottom-right':
+        x = width - padding - textWidth;
+        y = padding;
+        break;
+      default:
+        x = width / 2 - textWidth / 2;
+        y = height / 2 - textHeight / 2;
+    }
+
+    // If there is a rotation, adjust x, y so it rotates around the center of the text roughly
+    // Wait, pdf-lib rotates around the lower-left corner of the text.
+    // For center with 45 degrees, the origin shift is complex. We'll just draw it with absolute x,y which starts at baseline left.
+    // If the user selects a rotated center watermark, we should tweak the origin slightly so it doesn't fly off screen.
+    // For simplicity, we can translate the rotation origin. But pdf-lib's `drawText` doesn't have a direct origin pivot.
+    // However, if we draw the text as is, it might be decent enough for MVP. 
+    // To make a center-rotated text look better, let's roughly adjust x and y.
+    
+    // Better positioning to account for rotation offset when rotating from bottom-left
+    let adjustedX = x;
+    let adjustedY = y;
+    
+    // When text rotates, its bounding box changes. For center and 45deg, let's do a simple heuristic offset.
+    if (rotation !== 0) {
+      const rad = rotation * (Math.PI / 180);
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+      // approximate offset from bottom-left to center of text
+      const dx = (textWidth / 2);
+      const dy = (textHeight / 2);
+      // rotate the center offset
+      const rx = dx * cos - dy * sin;
+      const ry = dx * sin + dy * cos;
+      // adjust x and y so the *center* of the rotated text is at the *center* of the target position
+      // The target position center is (x + dx), (y + dy)
+      const targetCx = x + dx;
+      const targetCy = y + dy;
+      adjustedX = targetCx - rx;
+      adjustedY = targetCy - ry;
+    }
+
+    page.drawText(text, {
+      x: adjustedX,
+      y: adjustedY,
+      size: fontSize,
+      font: helveticaFont,
+      color: rgb(parsedColor.r, parsedColor.g, parsedColor.b),
+      rotate: degrees(rotation),
+      opacity: opacity,
+    });
+  }
+
+  const modifiedPdfBytes = await pdfDoc.save();
+  const fileName = generateUniqueFilename('watermarked', 'pdf');
+  const outputPath = path.join(outputDir, fileName);
+  await writeFile(outputPath, modifiedPdfBytes);
+
+  return {
+    fileName,
+    outputPath,
+    downloadUrl: `/downloads/${fileName}`,
+  };
 }
