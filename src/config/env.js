@@ -8,6 +8,9 @@ export const ENV = {
   OUTPUT_DIR: process.env.OUTPUT_DIR || 'public/downloads',
   MAX_FILE_SIZE_MB: parseInt(process.env.MAX_FILE_SIZE_MB) || 20,
   MAX_FILES: parseInt(process.env.MAX_FILES) || 10,
+  // App base URL for public links
+  APP_BASE_URL: process.env.APP_BASE_URL || 'http://localhost:4000',
+
   // Python microservice base URLs
   PYTHON_PDF_SERVICE_URL: process.env.PYTHON_PDF_SERVICE_URL || 'http://localhost:8001',
   PYTHON_IMAGE_SERVICE_URL: process.env.PYTHON_IMAGE_SERVICE_URL || 'http://localhost:8002',

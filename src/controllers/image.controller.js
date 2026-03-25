@@ -40,8 +40,8 @@ export async function removeBackground(req, res, next) {
     // Clean up temp upload
     removeFiles(uploadedPaths);
 
-    // Build absolute download URL pointing to Python Image service static files
-    const downloadUrl = `${ENV.PYTHON_IMAGE_SERVICE_URL}${pythonResponse.data.download_url}`;
+    // Build absolute download URL pointing to the Backend proxy
+    const downloadUrl = `${ENV.APP_BASE_URL}/api/python-proxy/image/${pythonResponse.data.file_name}`;
 
     return res.status(200).json({
       success: true,

@@ -37,9 +37,55 @@ app.use(
   })
 );
 
-// Serve merged PDF files for download
+// Serve merged PDF files for download (native Node.js)
 const downloadsPath = resolveFromRoot(ENV.OUTPUT_DIR);
 app.use('/downloads', express.static(downloadsPath));
+
+// Proxy for Python service files
+app.get('/api/python-proxy/:service/:filename', async (req, res) => {
+  const { service, filename } = req.params;
+  let targetBaseUrl = '';
+
+  if (service === 'pdf') {
+    targetBaseUrl = ENV.PYTHON_PDF_SERVICE_URL;
+  } else if (service === 'image') {
+    targetBaseUrl = ENV.PYTHON_IMAGE_SERVICE_URL;
+  } else {
+    return res.status(400).json({ success: false, message: 'Invalid service' });
+  }
+
+  const targetUrl = `${targetBaseUrl}/files/output/${filename}`;
+
+  try {
+    const response = await fetch(targetUrl);
+    if (!response.ok) {
+      return res.status(response.status).json({ success: false, message: 'File not found on remote service' });
+    }
+
+    // Forward headers
+    const contentType = response.headers.get('content-type');
+    if (contentType) res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    // Stream the response body to the client
+    const reader = response.body.getReader();
+    
+    // Helper to stream readable stream to express response
+    async function push() {
+      const { done, value } = await reader.read();
+      if (done) {
+        res.end();
+        return;
+      }
+      res.write(value);
+      return push();
+    }
+    await push();
+  } catch (err) {
+    console.error('Proxy Error:', err);
+    res.status(500).json({ success: false, message: 'Failed to proxy file from Python service' });
+  }
+});
 
 // Mount API routes
 app.use('/api', apiRoutes);
