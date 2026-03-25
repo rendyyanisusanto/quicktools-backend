@@ -81,10 +81,14 @@ app.get('/api/python-proxy/:service/:filename', async (req, res) => {
       res.status(500).json({ success: false, message: 'Response body is empty' });
     }
   } catch (err) {
-    console.error(`Proxy Exception for ${targetUrl}:`, err.message);
+    console.error(`Proxy Exception for ${targetUrl}:`, {
+      message: err.message,
+      code: err.code,
+      stack: err.stack
+    });
     res.status(500).json({ 
       success: false, 
-      message: 'Gagal mengambil file dari layanan Python. Pastikan layanan berjalan.' 
+      message: `Gagal mengambil file dari layanan Python. Pastikan layanan berjalan di ${targetBaseUrl}.` 
     });
   }
 });
