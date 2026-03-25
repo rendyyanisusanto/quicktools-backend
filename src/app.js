@@ -58,8 +58,13 @@ app.get('/api/python-proxy/:service/:filename', async (req, res) => {
 
   try {
     const response = await fetch(targetUrl);
+    
     if (!response.ok) {
-      return res.status(response.status).json({ success: false, message: 'File not found on remote service' });
+      console.error(`Proxy Target Error: ${response.status} ${response.statusText} for ${targetUrl}`);
+      return res.status(response.status).json({ 
+        success: false, 
+        message: 'File tidak ditemukan di layanan Python.' 
+      });
     }
 
     // Forward headers
@@ -68,22 +73,19 @@ app.get('/api/python-proxy/:service/:filename', async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
     // Stream the response body to the client
-    const reader = response.body.getReader();
-    
-    // Helper to stream readable stream to express response
-    async function push() {
-      const { done, value } = await reader.read();
-      if (done) {
-        res.end();
-        return;
-      }
-      res.write(value);
-      return push();
+    // Native fetch in Node 18+ provides a Web Stream body
+    if (response.body) {
+      const { Readable } = await import('node:stream');
+      Readable.fromWeb(response.body).pipe(res);
+    } else {
+      res.status(500).json({ success: false, message: 'Response body is empty' });
     }
-    await push();
   } catch (err) {
-    console.error('Proxy Error:', err);
-    res.status(500).json({ success: false, message: 'Failed to proxy file from Python service' });
+    console.error(`Proxy Exception for ${targetUrl}:`, err.message);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Gagal mengambil file dari layanan Python. Pastikan layanan berjalan.' 
+    });
   }
 });
 
