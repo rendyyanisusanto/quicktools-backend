@@ -74,9 +74,8 @@ export async function applySignature(req, res, next) {
     const files = req.files;
 
     if (!files || files.length !== 2) {
-      const dbg = files ? files.map(f => f.fieldname + ':' + f.originalname).join(', ') : 'null';
       if (files) removeFiles(files.map(f => f.path));
-      return res.status(400).json({ success: false, message: `Dibutuhkan 1 file PDF dan 1 file gambar. Diterima: ${dbg}` });
+      return res.status(400).json({ success: false, message: 'Dibutuhkan 1 file PDF dan 1 file gambar.' });
     }
 
     uploadedPaths = files.map((f) => f.path);
