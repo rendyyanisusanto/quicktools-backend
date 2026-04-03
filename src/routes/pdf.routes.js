@@ -7,7 +7,7 @@ import {
   pdfToJpg,
   addWatermark
 } from '../controllers/pdf.controller.js';
-import { pdfToWord } from '../controllers/pdfConvert.controller.js';
+import { pdfToWord, applySignature } from '../controllers/pdfConvert.controller.js';
 import { wordToPdf } from '../controllers/wordConvert.controller.js';
 
 const router = Router();
@@ -35,5 +35,8 @@ router.post('/word-to-pdf', wordToPdf);
 
 // POST /api/pdf/add-watermark
 router.post('/add-watermark', addWatermark);
+
+// POST /api/pdf/apply-signature
+router.post('/apply-signature', applySignature);
 
 export default router;

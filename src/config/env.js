@@ -12,6 +12,6 @@ export const ENV = {
   APP_BASE_URL: process.env.APP_BASE_URL || 'https://api.quicktools.web.id',
 
   // Python microservice base URLs
-  PYTHON_PDF_SERVICE_URL: process.env.PYTHON_PDF_SERVICE_URL || 'http://localhost:8001',
-  PYTHON_IMAGE_SERVICE_URL: process.env.PYTHON_IMAGE_SERVICE_URL || 'http://localhost:8002',
+  PYTHON_PDF_SERVICE_URL: process.env.PYTHON_PDF_SERVICE_URL || 'http://127.0.0.1:8001',
+  PYTHON_IMAGE_SERVICE_URL: process.env.PYTHON_IMAGE_SERVICE_URL || 'http://127.0.0.1:8002',
 };

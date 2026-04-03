@@ -49,3 +49,43 @@ export async function forwardFileToPythonPdf(file, endpoint) {
 
   return json;
 }
+
+/**
+ * Forward PDF and Signature Image to the Python PDF service.
+ */
+export async function forwardApplySignatureToPythonPdf(filePdf, fileSignature, page, alignH, alignV, size) {
+  const pdfBuffer = await readFile(filePdf.path);
+  const pdfBlob = new Blob([pdfBuffer], { type: filePdf.mimetype });
+
+  const sigBuffer = await readFile(fileSignature.path);
+  const sigBlob = new Blob([sigBuffer], { type: fileSignature.mimetype });
+
+  const formData = new FormData();
+  formData.append('file', pdfBlob, filePdf.originalname);
+  formData.append('signature', sigBlob, fileSignature.originalname);
+  if (page) formData.append('page', page);
+  if (alignH) formData.append('align_h', alignH);
+  if (alignV) formData.append('align_v', alignV);
+  if (size) formData.append('size', size);
+
+  let response;
+  try {
+    response = await fetch(`${BASE_URL}/api/pdf/apply-signature`, {
+      method: 'POST',
+      body: formData,
+    });
+  } catch {
+    throw new Error(
+      `Python PDF service tidak dapat dihubungi. Pastikan service berjalan di ${BASE_URL}.`
+    );
+  }
+
+  const json = await response.json();
+
+  if (!response.ok) {
+    const detail = json?.detail || json?.message || 'Terjadi kesalahan pada Python service.';
+    throw new Error(detail);
+  }
+
+  return json;
+}
