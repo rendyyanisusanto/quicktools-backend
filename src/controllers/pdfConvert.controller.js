@@ -88,9 +88,10 @@ export async function applySignature(req, res, next) {
       return res.status(400).json({ success: false, message: 'Format file tidak sesuai. Harus ada 1 PDF dan 1 gambar (PNG/JPG/WEBP).' });
     }
 
-    const { page, alignH, alignV, size } = req.body;
+    const { page, alignH, alignV, size, x, y, width, height, previewWidth, previewHeight } = req.body;
+    const coordinates = { x, y, width, height, previewWidth, previewHeight };
 
-    const pythonResponse = await forwardApplySignatureToPythonPdf(filePdf, fileSig, page, alignH, alignV, size);
+    const pythonResponse = await forwardApplySignatureToPythonPdf(filePdf, fileSig, page, alignH, alignV, size, coordinates);
 
     removeFiles(uploadedPaths);
 

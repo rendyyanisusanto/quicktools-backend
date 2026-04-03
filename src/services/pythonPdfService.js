@@ -53,7 +53,7 @@ export async function forwardFileToPythonPdf(file, endpoint) {
 /**
  * Forward PDF and Signature Image to the Python PDF service.
  */
-export async function forwardApplySignatureToPythonPdf(filePdf, fileSignature, page, alignH, alignV, size) {
+export async function forwardApplySignatureToPythonPdf(filePdf, fileSignature, page, alignH, alignV, size, coordinates = {}) {
   const pdfBuffer = await readFile(filePdf.path);
   const pdfBlob = new Blob([pdfBuffer], { type: filePdf.mimetype });
 
@@ -67,6 +67,14 @@ export async function forwardApplySignatureToPythonPdf(filePdf, fileSignature, p
   if (alignH) formData.append('align_h', alignH);
   if (alignV) formData.append('align_v', alignV);
   if (size) formData.append('size', size);
+  
+  // Drag and Drop coordinates
+  if (coordinates.x) formData.append('x', coordinates.x);
+  if (coordinates.y) formData.append('y', coordinates.y);
+  if (coordinates.width) formData.append('width', coordinates.width);
+  if (coordinates.height) formData.append('height', coordinates.height);
+  if (coordinates.previewWidth) formData.append('preview_width', coordinates.previewWidth);
+  if (coordinates.previewHeight) formData.append('preview_height', coordinates.previewHeight);
 
   let response;
   try {
