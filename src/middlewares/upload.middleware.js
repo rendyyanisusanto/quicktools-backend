@@ -43,23 +43,30 @@ function fileFilter(req, file, cb) {
   }
 }
 
-export const uploadPdfFiles = multer({
+export const uploadAnyFiles = multer({
   storage,
   fileFilter,
   limits: {
     fileSize: MAX_FILE_SIZE_BYTES,
     files: ENV.MAX_FILES,
   },
-}).array('files'); // field name: 'files'
+}).any(); // accept any field name ('files' or 'file')
 
 /**
  * Wraps multer in a promise to allow try/catch in controllers.
  * Maps multer-specific errors into readable messages.
+ * 
+ * Works with both `files[]` arrays from PDF tools and single `file` uploads from image tools.
  */
 export function handleUpload(req, res) {
   return new Promise((resolve, reject) => {
-    uploadPdfFiles(req, res, (err) => {
-      if (!err) return resolve();
+    uploadAnyFiles(req, res, (err) => {
+      if (!err) {
+        // Normalization: map req.files regardless of field name used 
+        // Multer .any() populates req.files as an array of all uploaded files.
+        // We ensure req.files is set properly for the controllers.
+        return resolve();
+      }
 
       if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
@@ -67,6 +74,9 @@ export function handleUpload(req, res) {
         }
         if (err.code === 'LIMIT_FILE_COUNT') {
           return reject(new Error(`Maksimal ${ENV.MAX_FILES} file sekaligus.`));
+        }
+        if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+          return reject(new Error('Terdapat field file yang tidak didukung.'));
         }
       }
       reject(err);
